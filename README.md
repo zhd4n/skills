@@ -45,7 +45,31 @@ Saved setup uses `~/.config/youtrack/config.json`.
 - project, user, work type, field, state, and workflow discovery
 - user-based period reports over `/api/workItems`
 
-## Examples
+## Agent Examples
+
+### Codex
+
+After installing the skill, ask Codex directly:
+
+```text
+Use $youtrack to list my unresolved issues assigned to me.
+Use $youtrack to log 90 minutes on T-123 for today with text "Implementation".
+Use $youtrack to report jane.doe's work from 2026-03-01 to 2026-03-31 grouped by issue.
+```
+
+### Claude Code
+
+With the skill installed in Claude Code, invoke it directly:
+
+```text
+/youtrack issue search --query "#Unresolved assignee: me" --top 10
+/youtrack work create T-123 --date 2026-03-31 --duration "90" --text "Implementation" --author jane.doe
+/youtrack report period --from 2026-03-01 --to 2026-03-31 --user jane.doe --group-by issue
+```
+
+Claude Code can also auto-discover the skill from natural-language prompts when the task matches the skill description.
+
+## CLI Examples
 
 Create and update an issue:
 
