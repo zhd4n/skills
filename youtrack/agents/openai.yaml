@@ -1,4 +1,4 @@
 interface:
-  display_name: "YouTrack REST"
-  short_description: "Manage YouTrack over REST API"
-  default_prompt: "Use $youtrack to manage YouTrack issues, comments, work items, or time reports over REST API."
+  display_name: "YouTrack"
+  short_description: "Manage YouTrack over the official API"
+  default_prompt: "Use $youtrack to manage YouTrack issues, comments, work items, or time reports over the official API."
