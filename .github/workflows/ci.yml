@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-skill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Python dependencies
+        run: python3 -m pip install --upgrade pip pyyaml
+
+      - name: Validate skill metadata
+        run: python3 scripts/validate_skill.py youtrack
+
+      - name: Run unit tests
+        run: python3 -m unittest tests.test_youtrack_api -v
+
+      - name: Compile Python entrypoints
+        run: python3 -m py_compile youtrack/scripts/youtrack_api.py scripts/validate_skill.py
+
+      - name: Verify skill is discoverable
+        run: npx --yes skills add . --skill youtrack --list
+
+      - name: Verify isolated Codex install
+        run: |
+          export HOME="$RUNNER_TEMP/skills-home"
+          mkdir -p "$HOME"
+          npx --yes skills add "$GITHUB_WORKSPACE" --skill youtrack -g -a codex -y --copy

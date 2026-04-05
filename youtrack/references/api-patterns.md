@@ -15,8 +15,11 @@ python3 scripts/youtrack_api.py setup \
 This writes:
 
 ```text
-~/.config/youtrack-rest/config.json
+~/.config/youtrack/config.json
 ```
+
+Legacy installs that already have `~/.config/youtrack-rest/config.json`
+continue to load it as a read fallback until `setup` writes the canonical path.
 
 Environment variables override the saved config:
 
@@ -283,13 +286,14 @@ issue delete T-123 --mode hard --confirm
 The public repository uses a repo-local validator script instead of relying on Codex-only paths:
 
 ```bash
-python3 scripts/validate_skill.py youtrack-rest
+python3 scripts/validate_skill.py youtrack
 ```
 
 GitHub Actions also runs:
 
 ```bash
 python3 -m unittest tests.test_youtrack_api -v
-python3 -m coverage run -m unittest tests.test_youtrack_api
-python3 -m coverage report --include='*/youtrack_api.py' --fail-under=100
+python3 -m py_compile youtrack/scripts/youtrack_api.py scripts/validate_skill.py
+npx --yes skills add . --skill youtrack --list
+HOME="$(mktemp -d)" npx --yes skills add . --skill youtrack -g -a codex -y --copy
 ```

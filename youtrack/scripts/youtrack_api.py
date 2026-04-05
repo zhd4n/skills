@@ -37,7 +37,8 @@ DEFAULT_USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/137.0.0.0 Safari/537.36"
 )
-CONFIG_DIR_NAME = "youtrack-rest"
+CONFIG_DIR_NAME = "youtrack"
+LEGACY_CONFIG_DIR_NAME = "youtrack-rest"
 CONFIG_FILE_NAME = "config.json"
 DEFAULT_TIMEOUT_SECONDS = 20.0
 DEFAULT_GET_RETRY_ATTEMPTS = 3
@@ -109,21 +110,26 @@ def load_config(env: dict[str, str] | None = None) -> Config:
     return Config(base_url=base_url.rstrip("/"), token=token)
 
 
-def get_config_path(env: dict[str, str] | None = None) -> Path:
+def build_config_path(config_dir_name: str, env: dict[str, str] | None = None) -> Path:
     source = env if env is not None else os.environ
     config_home = (source.get("XDG_CONFIG_HOME") or "").strip()
     if config_home:
-        return Path(config_home).expanduser() / CONFIG_DIR_NAME / CONFIG_FILE_NAME
+        return Path(config_home).expanduser() / config_dir_name / CONFIG_FILE_NAME
     home = (source.get("HOME") or "").strip()
     if home:
-        return Path(home).expanduser() / ".config" / CONFIG_DIR_NAME / CONFIG_FILE_NAME
-    return Path.home() / ".config" / CONFIG_DIR_NAME / CONFIG_FILE_NAME
+        return Path(home).expanduser() / ".config" / config_dir_name / CONFIG_FILE_NAME
+    return Path.home() / ".config" / config_dir_name / CONFIG_FILE_NAME
 
 
-def load_saved_config(env: dict[str, str] | None = None) -> dict[str, str]:
-    config_path = get_config_path(env)
-    if not config_path.exists():
-        return {}
+def get_config_path(env: dict[str, str] | None = None) -> Path:
+    return build_config_path(CONFIG_DIR_NAME, env)
+
+
+def get_legacy_config_path(env: dict[str, str] | None = None) -> Path:
+    return build_config_path(LEGACY_CONFIG_DIR_NAME, env)
+
+
+def read_config_file(config_path: Path) -> dict[str, str]:
     try:
         raw = json.loads(config_path.read_text())
     except (OSError, json.JSONDecodeError) as exc:
@@ -134,6 +140,13 @@ def load_saved_config(env: dict[str, str] | None = None) -> dict[str, str]:
         "base_url": str(raw.get("base_url", "")).strip().rstrip("/"),
         "token": str(raw.get("token", "")).strip(),
     }
+
+
+def load_saved_config(env: dict[str, str] | None = None) -> dict[str, str]:
+    for config_path in (get_config_path(env), get_legacy_config_path(env)):
+        if config_path.exists():
+            return read_config_file(config_path)
+    return {}
 
 
 def save_config(*, base_url: str, token: str, env: dict[str, str] | None = None) -> Path:

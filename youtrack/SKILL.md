@@ -1,6 +1,6 @@
 ---
 name: youtrack
-description: Use when Codex needs to manage YouTrack issues, comments, work items, assignments, state changes, field updates, or spent-time reports over the official REST API using `YOUTRACK_BASE_URL` and `YOUTRACK_TOKEN`.
+description: Use when Codex needs to read or update YouTrack issues, comments, work items, assignments, custom fields, workflows, or spent-time reports through the official REST API.
 ---
 
 # YouTrack REST
@@ -19,7 +19,9 @@ python3 scripts/youtrack_api.py setup \
   --token "perm:..."
 ```
 
-This writes to `~/.config/youtrack-rest/config.json`.
+This writes to `~/.config/youtrack/config.json`.
+
+Legacy installs that already have `~/.config/youtrack-rest/config.json` keep working as a read fallback until you run `setup` again.
 
 You can also use environment variables:
 
