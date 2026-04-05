@@ -45,4 +45,4 @@ Saved setup uses `~/.config/youtrack/config.json`.
 - project, user, work type, field, state, and workflow discovery
 - user-based period reports over `/api/workItems`
 
-See [youtrack/SKILL.md](/Users/zhzh/Projects/zhd4n-projects/skills/youtrack/SKILL.md) for the full command surface and guardrails.
+See `youtrack/SKILL.md` for the full command surface and guardrails.
