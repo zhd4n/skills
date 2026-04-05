@@ -21,8 +21,6 @@ python3 scripts/youtrack_api.py setup \
 
 This writes to `~/.config/youtrack/config.json`.
 
-Legacy installs that already have `~/.config/youtrack-rest/config.json` keep working as a read fallback until you run `setup` again.
-
 You can also use environment variables:
 
 ```bash

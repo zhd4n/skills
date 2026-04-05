@@ -57,7 +57,7 @@ class YouTrackApiTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             env = {"HOME": temp_dir}
-            config_path = Path(temp_dir) / ".config" / "youtrack-rest" / "config.json"
+            config_path = Path(temp_dir) / ".config" / "youtrack" / "config.json"
             config_path.parent.mkdir(parents=True)
             config_path.write_text(
                 json.dumps(
@@ -77,7 +77,7 @@ class YouTrackApiTests(unittest.TestCase):
         module = load_module()
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            config_path = Path(temp_dir) / ".config" / "youtrack-rest" / "config.json"
+            config_path = Path(temp_dir) / ".config" / "youtrack" / "config.json"
             config_path.parent.mkdir(parents=True)
             config_path.write_text(
                 json.dumps(
@@ -1074,7 +1074,7 @@ class YouTrackApiTests(unittest.TestCase):
         module = load_module()
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            path = Path(temp_dir) / ".config" / "youtrack-rest" / "config.json"
+            path = Path(temp_dir) / ".config" / "youtrack" / "config.json"
             path.parent.mkdir(parents=True)
             path.write_text("{bad json")
             with self.assertRaisesRegex(ValueError, "Invalid config file"):
@@ -1083,61 +1083,6 @@ class YouTrackApiTests(unittest.TestCase):
             path.write_text("[]")
             with self.assertRaisesRegex(ValueError, "expected an object"):
                 module.load_saved_config({"HOME": temp_dir})
-
-    def test_load_saved_config_prefers_new_path_when_both_exist(self):
-        module = load_module()
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            config_root = Path(temp_dir) / ".config"
-            new_path = config_root / "youtrack" / "config.json"
-            legacy_path = config_root / "youtrack-rest" / "config.json"
-            new_path.parent.mkdir(parents=True)
-            legacy_path.parent.mkdir(parents=True)
-            new_path.write_text(
-                json.dumps(
-                    {
-                        "base_url": "https://new.example",
-                        "token": "new-token",
-                    }
-                )
-            )
-            legacy_path.write_text(
-                json.dumps(
-                    {
-                        "base_url": "https://old.example",
-                        "token": "old-token",
-                    }
-                )
-            )
-
-            config = module.load_saved_config({"HOME": temp_dir})
-
-        self.assertEqual(
-            config,
-            {"base_url": "https://new.example", "token": "new-token"},
-        )
-
-    def test_load_saved_config_falls_back_to_legacy_path(self):
-        module = load_module()
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            legacy_path = Path(temp_dir) / ".config" / "youtrack-rest" / "config.json"
-            legacy_path.parent.mkdir(parents=True)
-            legacy_path.write_text(
-                json.dumps(
-                    {
-                        "base_url": "https://old.example",
-                        "token": "old-token",
-                    }
-                )
-            )
-
-            config = module.load_saved_config({"HOME": temp_dir})
-
-        self.assertEqual(
-            config,
-            {"base_url": "https://old.example", "token": "old-token"},
-        )
 
     def test_quote_command_token_returns_plain_token_without_spaces(self):
         module = load_module()

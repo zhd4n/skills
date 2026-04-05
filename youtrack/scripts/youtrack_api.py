@@ -38,7 +38,6 @@ DEFAULT_USER_AGENT = (
     "Chrome/137.0.0.0 Safari/537.36"
 )
 CONFIG_DIR_NAME = "youtrack"
-LEGACY_CONFIG_DIR_NAME = "youtrack-rest"
 CONFIG_FILE_NAME = "config.json"
 DEFAULT_TIMEOUT_SECONDS = 20.0
 DEFAULT_GET_RETRY_ATTEMPTS = 3
@@ -125,10 +124,6 @@ def get_config_path(env: dict[str, str] | None = None) -> Path:
     return build_config_path(CONFIG_DIR_NAME, env)
 
 
-def get_legacy_config_path(env: dict[str, str] | None = None) -> Path:
-    return build_config_path(LEGACY_CONFIG_DIR_NAME, env)
-
-
 def read_config_file(config_path: Path) -> dict[str, str]:
     try:
         raw = json.loads(config_path.read_text())
@@ -143,9 +138,9 @@ def read_config_file(config_path: Path) -> dict[str, str]:
 
 
 def load_saved_config(env: dict[str, str] | None = None) -> dict[str, str]:
-    for config_path in (get_config_path(env), get_legacy_config_path(env)):
-        if config_path.exists():
-            return read_config_file(config_path)
+    config_path = get_config_path(env)
+    if config_path.exists():
+        return read_config_file(config_path)
     return {}
 
 

@@ -18,9 +18,6 @@ This writes:
 ~/.config/youtrack/config.json
 ```
 
-Legacy installs that already have `~/.config/youtrack-rest/config.json`
-continue to load it as a read fallback until `setup` writes the canonical path.
-
 Environment variables override the saved config:
 
 ```bash
