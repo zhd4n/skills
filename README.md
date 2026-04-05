@@ -45,4 +45,47 @@ Saved setup uses `~/.config/youtrack/config.json`.
 - project, user, work type, field, state, and workflow discovery
 - user-based period reports over `/api/workItems`
 
+## Examples
+
+Create and update an issue:
+
+```bash
+python3 scripts/youtrack_api.py issue create \
+  --project T \
+  --summary "Investigate API regression" \
+  --assignee jane.doe \
+  --state "In Progress"
+
+python3 scripts/youtrack_api.py issue update T-123 \
+  --summary "Investigate API timeout regression" \
+  --field "Priority=Critical"
+```
+
+Search issues and inspect workflow data:
+
+```bash
+python3 scripts/youtrack_api.py issue search --query "#Unresolved assignee: me" --top 10
+python3 scripts/youtrack_api.py state list --project T --pretty
+```
+
+Track time on an issue:
+
+```bash
+python3 scripts/youtrack_api.py work create T-123 \
+  --date 2026-03-31 \
+  --duration "90" \
+  --text "Implementation" \
+  --author jane.doe
+```
+
+Generate a period report:
+
+```bash
+python3 scripts/youtrack_api.py report period \
+  --from 2026-03-01 \
+  --to 2026-03-31 \
+  --user jane.doe \
+  --group-by issue
+```
+
 See `youtrack/SKILL.md` for the full command surface and guardrails.
