@@ -11,6 +11,7 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  SKILLS: "youtrack laravel-inertia shadcn-vue-laravel"
 
 jobs:
   validate-skill:
@@ -33,7 +34,19 @@ jobs:
         run: python3 -m pip install --upgrade pip pyyaml
 
       - name: Validate skill metadata
-        run: python3 scripts/validate_skill.py youtrack
+        run: |
+          for skill in $SKILLS; do
+            python3 scripts/validate_skill.py "$skill"
+          done
+
+      - name: Ensure no macOS metadata files are tracked
+        run: |
+          tracked_ds_store="$(git ls-files | grep -E '(^|/)\.DS_Store$' || true)"
+          if [ -n "$tracked_ds_store" ]; then
+            echo "Remove tracked .DS_Store files before publishing:"
+            printf '%s\n' "$tracked_ds_store"
+            exit 1
+          fi
 
       - name: Run unit tests
         run: python3 -m unittest tests.test_youtrack_api -v
@@ -42,10 +55,14 @@ jobs:
         run: python3 -m py_compile youtrack/scripts/youtrack_api.py scripts/validate_skill.py
 
       - name: Verify skill is discoverable
-        run: npx --yes skills add . --skill youtrack --list
+        run: npx --yes skills add . --list
 
       - name: Verify isolated Codex install
         run: |
           export HOME="$RUNNER_TEMP/skills-home"
           mkdir -p "$HOME"
-          npx --yes skills add "$GITHUB_WORKSPACE" --skill youtrack -g -a codex -y --copy
+          for agent in codex claude-code; do
+            for skill in $SKILLS; do
+              npx --yes skills add "$GITHUB_WORKSPACE" --skill "$skill" -g -a "$agent" -y --copy
+            done
+          done

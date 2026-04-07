@@ -1,0 +1,4 @@
+interface:
+  display_name: "shadcn-vue Laravel"
+  short_description: "Translate shadcn-vue examples into Laravel + Inertia v3 + Vue"
+  default_prompt: "Use $shadcn-vue-laravel to adapt this shadcn-vue example to a Laravel + Inertia + Vue app."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Inertia v3 Laravel Patterns"
+  short_description: "Official Laravel-oriented Inertia v3 app patterns"
+  default_prompt: "Use $laravel-inertia to choose the right official Inertia pattern for this Laravel app change."
