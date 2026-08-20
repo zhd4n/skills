@@ -98,6 +98,50 @@ class YouTrackApiTests(unittest.TestCase):
         self.assertEqual(config.base_url, "https://env.youtrack.cloud")
         self.assertEqual(config.token, "perm-env-token")
 
+    def test_load_config_rejects_env_url_without_env_token(self):
+        module = load_module()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / ".config" / "youtrack" / "config.json"
+            config_path.parent.mkdir(parents=True)
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "base_url": "https://config.youtrack.cloud",
+                        "token": "perm-config-token",
+                    }
+                )
+            )
+            env = {
+                "HOME": temp_dir,
+                "YOUTRACK_BASE_URL": "https://env.youtrack.cloud",
+            }
+
+            with self.assertRaisesRegex(ValueError, "YOUTRACK_TOKEN"):
+                module.load_config(env)
+
+    def test_load_config_rejects_env_token_without_env_url(self):
+        module = load_module()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / ".config" / "youtrack" / "config.json"
+            config_path.parent.mkdir(parents=True)
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "base_url": "https://config.youtrack.cloud",
+                        "token": "perm-config-token",
+                    }
+                )
+            )
+            env = {
+                "HOME": temp_dir,
+                "YOUTRACK_TOKEN": "perm-env-token",
+            }
+
+            with self.assertRaisesRegex(ValueError, "YOUTRACK_BASE_URL"):
+                module.load_config(env)
+
     def test_save_config_writes_to_skill_specific_path(self):
         module = load_module()
 
@@ -1288,7 +1332,8 @@ class YouTrackApiTests(unittest.TestCase):
 
         client = StubClient()
         client.apply_command("T-1", 'State "Open"')
-        client.update_issue("T-1", summary="New", description="Desc", assignee="alice", state="Open", fields=["Priority=High"])
+        client.update_issue("T-1", summary="New", description="Desc")
+        client.update_issue("T-1", assignee="alice", state="Open", fields=["Priority=High"])
         client.delete_issue("T-1", mode="safe", safe_delete_command="Remove")
         client.delete_issue("T-1", mode="hard", confirm=True)
 
@@ -1296,6 +1341,44 @@ class YouTrackApiTests(unittest.TestCase):
         self.assertIn(("POST", "/commands"), request_paths)
         self.assertIn(("POST", "/issues/2-1"), request_paths)
         self.assertIn(("DELETE", "/issues/2-1"), request_paths)
+
+    def test_update_issue_rejects_mixed_changes_before_fetching_issue(self):
+        module = load_module()
+        client = module.YouTrackClient(module.Config(base_url="https://example.test", token="secret"))
+
+        with mock.patch.object(client, "get_issue") as get_issue:
+            with self.assertRaisesRegex(ValueError, "separate issue update commands"):
+                client.update_issue("T-1", summary="New", state="Open")
+
+        get_issue.assert_not_called()
+
+    def test_update_issue_sends_empty_description(self):
+        module = load_module()
+        client = module.YouTrackClient(module.Config(base_url="https://example.test", token="secret"))
+
+        with (
+            mock.patch.object(
+                client,
+                "get_issue",
+                side_effect=[{"id": "2-1", "idReadable": "T-1"}, {"id": "2-1"}],
+            ),
+            mock.patch.object(client, "_request", return_value={}) as request_method,
+        ):
+            client.update_issue("T-1", description="")
+
+        self.assertEqual(request_method.call_args.kwargs["body"], {"description": ""})
+
+    def test_update_work_sends_empty_text(self):
+        module = load_module()
+        client = module.YouTrackClient(module.Config(base_url="https://example.test", token="secret"))
+
+        with (
+            mock.patch.object(client, "get_issue", return_value={"id": "2-1"}),
+            mock.patch.object(client, "_request", return_value={}) as request_method,
+        ):
+            client.update_work("T-1", "w-1", text="")
+
+        self.assertEqual(request_method.call_args.kwargs["body"], {"text": ""})
 
     def test_issue_mutations_resolve_assignee_refs_before_command_query(self):
         module = load_module()
@@ -1799,6 +1882,35 @@ class YouTrackApiTests(unittest.TestCase):
             module.validate_args(issue_args)
         with self.assertRaisesRegex(ValueError, "work update requires at least one change"):
             module.validate_args(work_args)
+
+    def test_validate_args_rejects_mixed_issue_update(self):
+        module = load_module()
+        args = module.build_parser().parse_args(
+            ["issue", "update", "T-1", "--description", "", "--state", "Open"]
+        )
+
+        with self.assertRaisesRegex(ValueError, "separate issue update commands"):
+            module.validate_args(args)
+
+    def test_validate_args_accepts_empty_description_and_work_text(self):
+        module = load_module()
+        parser = module.build_parser()
+        issue_args = parser.parse_args(["issue", "update", "T-1", "--description", ""])
+        work_args = parser.parse_args(["work", "update", "T-1", "w-1", "--text", ""])
+
+        module.validate_args(issue_args)
+        module.validate_args(work_args)
+
+    def test_validate_args_does_not_treat_empty_command_fields_as_changes(self):
+        module = load_module()
+        parser = module.build_parser()
+
+        for option in ("--assignee", "--state"):
+            with self.subTest(option=option):
+                args = parser.parse_args(["issue", "update", "T-1", option, ""])
+
+                with self.assertRaisesRegex(ValueError, "at least one change"):
+                    module.validate_args(args)
 
     def test_main_dispatches_all_supported_resources(self):
         module = load_module()

@@ -88,14 +88,14 @@ class Config:
 
 def load_config(env: dict[str, str] | None = None) -> Config:
     source = env if env is not None else os.environ
-    base_url = (source.get("YOUTRACK_BASE_URL") or "").strip()
-    token = (source.get("YOUTRACK_TOKEN") or "").strip()
-    if not base_url or not token:
+    environment_configured = "YOUTRACK_BASE_URL" in source or "YOUTRACK_TOKEN" in source
+    if environment_configured:
+        base_url = (source.get("YOUTRACK_BASE_URL") or "").strip()
+        token = (source.get("YOUTRACK_TOKEN") or "").strip()
+    else:
         config_data = load_saved_config(source)
-        if not base_url:
-            base_url = config_data.get("base_url", "")
-        if not token:
-            token = config_data.get("token", "")
+        base_url = config_data.get("base_url", "")
+        token = config_data.get("token", "")
     missing = [
         name
         for name, value in (
@@ -859,6 +859,13 @@ class YouTrackClient:
         state: str | None = None,
         fields: list[str] | None = None,
     ) -> dict[str, Any]:
+        has_direct_changes = summary is not None or description is not None
+        has_command_changes = bool(assignee) or bool(state) or bool(fields)
+        if has_direct_changes and has_command_changes:
+            raise ValueError(
+                "Cannot mix summary/description with assignee/state/field; "
+                "use separate issue update commands"
+            )
         issue = self.get_issue(issue_ref, fields="id,idReadable")
         resolved_assignee = self.resolve_command_assignee(assignee) if assignee else None
         body: dict[str, Any] = {}
@@ -1450,10 +1457,21 @@ def validate_args(args: argparse.Namespace) -> None:
         if args.mode == "hard" and not args.confirm:
             raise ValueError("hard delete requires --confirm")
     if args.resource == "issue" and args.action == "update":
-        if not any([args.summary, args.description, args.assignee, args.state, args.fields]):
+        has_direct_changes = args.summary is not None or args.description is not None
+        has_command_changes = bool(args.assignee) or bool(args.state) or bool(args.fields)
+        if not has_direct_changes and not has_command_changes:
             raise ValueError("issue update requires at least one change")
+        if has_direct_changes and has_command_changes:
+            raise ValueError(
+                "issue update cannot mix summary/description with assignee/state/field; "
+                "use separate issue update commands"
+            )
     if args.resource == "work" and args.action == "update":
-        if not any([args.date, args.duration, args.text, args.author, args.type]):
+        has_changes = any(
+            value is not None
+            for value in (args.date, args.duration, args.text, args.author, args.type)
+        )
+        if not has_changes:
             raise ValueError("work update requires at least one change")
     if args.resource == "work" and args.action == "set-period":
         iter_period_dates(args.date_from, args.date_to, weekdays_only=args.weekdays_only)
